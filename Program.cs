@@ -1,90 +1,99 @@
-using CSharpMoneyLab.Enums;
 using CSharpMoneyLab.Helpers;
 using CSharpMoneyLab.Models;
 using CSharpMoneyLab.Services;
 
 Console.WriteLine("======================================");
-Console.WriteLine("CSharp Money Lab · Paso 17");
-Console.WriteLine("Null safety: Account? y fallback");
+Console.WriteLine("CSharp Money Lab · Paso 18");
+Console.WriteLine("OperationResult: errores controlados");
 Console.WriteLine("======================================");
 
 Console.WriteLine();
 
 SeedDataService seedDataService = new SeedDataService();
 TransactionService transactionService = new TransactionService();
-DashboardReportService dashboardReportService = new DashboardReportService();
-DashboardMetricService dashboardMetricService = new DashboardMetricService();
-RiskDistributionService riskDistributionService = new RiskDistributionService();
 AccountLookupService accountLookupService = new AccountLookupService();
+
+WithdrawalService withdrawalService = new WithdrawalService(
+    accountLookupService,
+    transactionService
+);
 
 List<Account> accounts = seedDataService.GetAccounts();
 List<Transaction> transactions = seedDataService.GetTransactions();
 
-List<AccountSummary> summaries = new();
-
-foreach (Account account in accounts)
-{
-    AccountSummary summary = transactionService.BuildAccountSummary(
-        account,
-        transactions
-    );
-
-    summaries.Add(summary);
-}
-
-DashboardReport report = dashboardReportService.BuildReport(summaries);
-List<DashboardMetric> metrics = dashboardMetricService.BuildMetrics(report);
-Dictionary<RiskLevel, int> riskDistribution =
-    riskDistributionService.BuildRiskDistribution(summaries);
-
-Console.WriteLine("Account lookup demo:");
+Console.WriteLine("Withdrawal attempts:");
 Console.WriteLine("--------------------------------------");
 
-Account? existingAccount = accountLookupService.FindByAccountNumber(
+OperationResult<Transaction> successfulWithdrawal = withdrawalService.TryCreateWithdrawal(
     accounts,
-    "ACC-1001"
+    transactions,
+    "ACC-1001",
+    250.00m
 );
 
-Account? missingAccount = accountLookupService.FindByAccountNumber(
+PrintWithdrawalResult("Valid withdrawal", successfulWithdrawal);
+
+OperationResult<Transaction> insufficientBalance = withdrawalService.TryCreateWithdrawal(
     accounts,
-    "ACC-9999"
+    transactions,
+    "ACC-1002",
+    5000.00m
 );
 
-Console.WriteLine($"Existing account customer: {accountLookupService.GetCustomerNameOrDefault(existingAccount)}");
-Console.WriteLine($"Existing account active: {accountLookupService.IsAccountActive(existingAccount)}");
+PrintWithdrawalResult("Insufficient balance", insufficientBalance);
 
-Console.WriteLine();
+OperationResult<Transaction> missingAccount = withdrawalService.TryCreateWithdrawal(
+    accounts,
+    transactions,
+    "ACC-9999",
+    100.00m
+);
 
-Console.WriteLine($"Missing account customer: {accountLookupService.GetCustomerNameOrDefault(missingAccount)}");
-Console.WriteLine($"Missing account active: {accountLookupService.IsAccountActive(missingAccount)}");
+PrintWithdrawalResult("Missing account", missingAccount);
 
-Console.WriteLine();
-Console.WriteLine("Dashboard metric cards:");
+OperationResult<Transaction> inactiveAccount = withdrawalService.TryCreateWithdrawal(
+    accounts,
+    transactions,
+    "ACC-1003",
+    100.00m
+);
 
-foreach (DashboardMetric metric in metrics)
-{
-    Console.WriteLine("--------------------------------------");
-    Console.WriteLine($"Label: {metric.Label}");
-    Console.WriteLine($"Value: {metric.Value}");
-    Console.WriteLine($"Description: {metric.Description}");
-}
+PrintWithdrawalResult("Inactive account", inactiveAccount);
 
-Console.WriteLine();
-Console.WriteLine("Risk distribution:");
+OperationResult<Transaction> invalidAmount = withdrawalService.TryCreateWithdrawal(
+    accounts,
+    transactions,
+    "ACC-1001",
+    0.00m
+);
 
-foreach (KeyValuePair<RiskLevel, int> item in riskDistribution)
-{
-    Console.WriteLine("--------------------------------------");
-    Console.WriteLine($"Risk: {FormatHelper.FormatRiskLevel(item.Key)}");
-    Console.WriteLine($"Accounts: {item.Value}");
-}
+PrintWithdrawalResult("Invalid amount", invalidAmount);
 
 Console.WriteLine();
 Console.WriteLine("JS/TS mental model:");
-Console.WriteLine("const account = accounts.find(account => account.accountNumber === 'ACC-9999');");
-Console.WriteLine("const customerName = account?.customerName ?? 'Unknown customer';");
+Console.WriteLine("return { success: true, data: transaction, message: 'Withdrawal created successfully.' };");
+Console.WriteLine("return { success: false, data: null, message: 'Insufficient balance.' };");
 
 Console.WriteLine();
 Console.WriteLine("C# equivalent:");
-Console.WriteLine("Account? account = accounts.FirstOrDefault(account => account.AccountNumber == \"ACC-9999\");");
-Console.WriteLine("string customerName = account?.CustomerName ?? \"Unknown customer\";");
+Console.WriteLine("OperationResult<Transaction>.Ok(transaction, \"Withdrawal created successfully.\");");
+Console.WriteLine("OperationResult<Transaction>.Fail(\"Insufficient balance.\");");
+
+static void PrintWithdrawalResult(
+    string scenario,
+    OperationResult<Transaction> result
+)
+{
+    Console.WriteLine("--------------------------------------");
+    Console.WriteLine($"Scenario: {scenario}");
+    Console.WriteLine($"Success: {result.Success}");
+    Console.WriteLine($"Message: {result.Message}");
+
+    if (result.Data is not null)
+    {
+        Console.WriteLine($"Transaction Id: {result.Data.Id}");
+        Console.WriteLine($"Amount: {FormatHelper.FormatMoney(result.Data.Amount, result.Data.Currency)}");
+        Console.WriteLine($"Type: {result.Data.Type}");
+        Console.WriteLine($"Status: {result.Data.Status}");
+    }
+}
