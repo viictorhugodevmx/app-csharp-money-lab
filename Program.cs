@@ -3,8 +3,8 @@ using CSharpMoneyLab.Models;
 using CSharpMoneyLab.Services;
 
 Console.WriteLine("======================================");
-Console.WriteLine("CSharp Money Lab · Paso 14");
-Console.WriteLine("DashboardReport: métricas globales");
+Console.WriteLine("CSharp Money Lab · Paso 15");
+Console.WriteLine("record: DTO ligero para métricas");
 Console.WriteLine("======================================");
 
 Console.WriteLine();
@@ -12,6 +12,7 @@ Console.WriteLine();
 SeedDataService seedDataService = new SeedDataService();
 TransactionService transactionService = new TransactionService();
 DashboardReportService dashboardReportService = new DashboardReportService();
+DashboardMetricService dashboardMetricService = new DashboardMetricService();
 
 List<Account> accounts = seedDataService.GetAccounts();
 List<Transaction> transactions = seedDataService.GetTransactions();
@@ -29,19 +30,17 @@ foreach (Account account in accounts)
 }
 
 DashboardReport report = dashboardReportService.BuildReport(summaries);
+List<DashboardMetric> metrics = dashboardMetricService.BuildMetrics(report);
 
-Console.WriteLine("Global dashboard metrics:");
-Console.WriteLine("--------------------------------------");
-Console.WriteLine($"Total accounts: {report.TotalAccounts}");
-Console.WriteLine($"Active accounts: {report.ActiveAccounts}");
-Console.WriteLine($"Inactive accounts: {report.InactiveAccounts}");
-Console.WriteLine($"Total transactions: {report.TotalTransactions}");
-Console.WriteLine($"Total deposits: {FormatHelper.FormatMoney(report.TotalDeposits, "MXN")}");
-Console.WriteLine($"Total withdrawals: {FormatHelper.FormatMoney(report.TotalWithdrawals, "MXN")}");
-Console.WriteLine($"Total balance: {FormatHelper.FormatMoney(report.TotalBalance, "MXN")}");
-Console.WriteLine($"Low risk accounts: {report.LowRiskAccounts}");
-Console.WriteLine($"Medium risk accounts: {report.MediumRiskAccounts}");
-Console.WriteLine($"High risk accounts: {report.HighRiskAccounts}");
+Console.WriteLine("Dashboard metric cards:");
+
+foreach (DashboardMetric metric in metrics)
+{
+    Console.WriteLine("--------------------------------------");
+    Console.WriteLine($"Label: {metric.Label}");
+    Console.WriteLine($"Value: {metric.Value}");
+    Console.WriteLine($"Description: {metric.Description}");
+}
 
 Console.WriteLine();
 Console.WriteLine("Account summary cards:");
@@ -51,17 +50,16 @@ foreach (AccountSummary summary in report.AccountSummaries)
     Console.WriteLine("--------------------------------------");
     Console.WriteLine($"Customer: {summary.CustomerName}");
     Console.WriteLine($"Account: {summary.AccountNumber}");
-    Console.WriteLine($"Active: {summary.IsAccountActive}");
     Console.WriteLine($"Risk: {FormatHelper.FormatRiskLevel(summary.RiskLevel)}");
     Console.WriteLine($"Balance: {FormatHelper.FormatMoney(summary.Balance, summary.Currency)}");
 }
 
 Console.WriteLine();
 Console.WriteLine("JS/TS mental model:");
-Console.WriteLine("const totalBalance = summaries.reduce((sum, item) => sum + item.balance, 0);");
-Console.WriteLine("const highRiskAccounts = summaries.filter(item => item.riskLevel === 'High').length;");
+Console.WriteLine("type DashboardMetric = { label: string; value: string; description: string };");
+Console.WriteLine("const metric = { label: 'Total balance', value: '$1,900.00', description: '...' };");
 
 Console.WriteLine();
 Console.WriteLine("C# equivalent:");
-Console.WriteLine("decimal totalBalance = summaries.Sum(summary => summary.Balance);");
-Console.WriteLine("int highRiskAccounts = summaries.Count(summary => summary.RiskLevel == RiskLevel.High);");
+Console.WriteLine("public record DashboardMetric(string Label, string Value, string Description);");
+Console.WriteLine("DashboardMetric metric = new DashboardMetric(\"Total balance\", \"1,900.00 MXN\", \"...\");");
