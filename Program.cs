@@ -3,8 +3,8 @@ using CSharpMoneyLab.Models;
 using CSharpMoneyLab.Services;
 
 Console.WriteLine("======================================");
-Console.WriteLine("CSharp Money Lab · Paso 15");
-Console.WriteLine("record: DTO ligero para métricas");
+Console.WriteLine("CSharp Money Lab · Paso 16");
+Console.WriteLine("Dictionary: distribución por riesgo");
 Console.WriteLine("======================================");
 
 Console.WriteLine();
@@ -13,6 +13,7 @@ SeedDataService seedDataService = new SeedDataService();
 TransactionService transactionService = new TransactionService();
 DashboardReportService dashboardReportService = new DashboardReportService();
 DashboardMetricService dashboardMetricService = new DashboardMetricService();
+RiskDistributionService riskDistributionService = new RiskDistributionService();
 
 List<Account> accounts = seedDataService.GetAccounts();
 List<Transaction> transactions = seedDataService.GetTransactions();
@@ -31,6 +32,8 @@ foreach (Account account in accounts)
 
 DashboardReport report = dashboardReportService.BuildReport(summaries);
 List<DashboardMetric> metrics = dashboardMetricService.BuildMetrics(report);
+Dictionary<CSharpMoneyLab.Enums.RiskLevel, int> riskDistribution =
+    riskDistributionService.BuildRiskDistribution(summaries);
 
 Console.WriteLine("Dashboard metric cards:");
 
@@ -40,6 +43,16 @@ foreach (DashboardMetric metric in metrics)
     Console.WriteLine($"Label: {metric.Label}");
     Console.WriteLine($"Value: {metric.Value}");
     Console.WriteLine($"Description: {metric.Description}");
+}
+
+Console.WriteLine();
+Console.WriteLine("Risk distribution:");
+
+foreach (KeyValuePair<CSharpMoneyLab.Enums.RiskLevel, int> item in riskDistribution)
+{
+    Console.WriteLine("--------------------------------------");
+    Console.WriteLine($"Risk: {FormatHelper.FormatRiskLevel(item.Key)}");
+    Console.WriteLine($"Accounts: {item.Value}");
 }
 
 Console.WriteLine();
@@ -56,10 +69,10 @@ foreach (AccountSummary summary in report.AccountSummaries)
 
 Console.WriteLine();
 Console.WriteLine("JS/TS mental model:");
-Console.WriteLine("type DashboardMetric = { label: string; value: string; description: string };");
-Console.WriteLine("const metric = { label: 'Total balance', value: '$1,900.00', description: '...' };");
+Console.WriteLine("const riskDistribution = { Low: 1, Medium: 1, High: 1 };");
+Console.WriteLine("Object.entries(riskDistribution).forEach(([risk, count]) => console.log(risk, count));");
 
 Console.WriteLine();
 Console.WriteLine("C# equivalent:");
-Console.WriteLine("public record DashboardMetric(string Label, string Value, string Description);");
-Console.WriteLine("DashboardMetric metric = new DashboardMetric(\"Total balance\", \"1,900.00 MXN\", \"...\");");
+Console.WriteLine("Dictionary<RiskLevel, int> riskDistribution = new();");
+Console.WriteLine("foreach (KeyValuePair<RiskLevel, int> item in riskDistribution) { ... }");
