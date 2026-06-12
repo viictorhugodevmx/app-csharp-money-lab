@@ -3,8 +3,8 @@ using CSharpMoneyLab.Models;
 using CSharpMoneyLab.Services;
 
 Console.WriteLine("======================================");
-Console.WriteLine("CSharp Money Lab · Paso 18");
-Console.WriteLine("OperationResult: errores controlados");
+Console.WriteLine("CSharp Money Lab · Paso 19");
+Console.WriteLine("try/catch: errores esperados vs inesperados");
 Console.WriteLine("======================================");
 
 Console.WriteLine();
@@ -69,15 +69,27 @@ OperationResult<Transaction> invalidAmount = withdrawalService.TryCreateWithdraw
 
 PrintWithdrawalResult("Invalid amount", invalidAmount);
 
+OperationResult<Transaction> unexpectedError = withdrawalService.TryCreateWithdrawal(
+    accounts,
+    transactions,
+    "ACC-1001",
+    9999.00m
+);
+
+PrintWithdrawalResult("Unexpected provider error", unexpectedError);
+
+Console.WriteLine();
+Console.WriteLine("Error handling rule:");
+Console.WriteLine("Business validation errors -> OperationResult.Fail(...)");
+Console.WriteLine("Unexpected technical errors -> catch (Exception ex)");
+
 Console.WriteLine();
 Console.WriteLine("JS/TS mental model:");
-Console.WriteLine("return { success: true, data: transaction, message: 'Withdrawal created successfully.' };");
-Console.WriteLine("return { success: false, data: null, message: 'Insufficient balance.' };");
+Console.WriteLine("try { createWithdrawal(); } catch (error) { return { success: false, message: error.message }; }");
 
 Console.WriteLine();
 Console.WriteLine("C# equivalent:");
-Console.WriteLine("OperationResult<Transaction>.Ok(transaction, \"Withdrawal created successfully.\");");
-Console.WriteLine("OperationResult<Transaction>.Fail(\"Insufficient balance.\");");
+Console.WriteLine("try { ... } catch (Exception ex) { return OperationResult<Transaction>.Fail(ex.Message); }");
 
 static void PrintWithdrawalResult(
     string scenario,
