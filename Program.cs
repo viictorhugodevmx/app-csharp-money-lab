@@ -1,10 +1,11 @@
+using CSharpMoneyLab.Enums;
 using CSharpMoneyLab.Helpers;
 using CSharpMoneyLab.Models;
 using CSharpMoneyLab.Services;
 
 Console.WriteLine("======================================");
-Console.WriteLine("CSharp Money Lab · Paso 16");
-Console.WriteLine("Dictionary: distribución por riesgo");
+Console.WriteLine("CSharp Money Lab · Paso 17");
+Console.WriteLine("Null safety: Account? y fallback");
 Console.WriteLine("======================================");
 
 Console.WriteLine();
@@ -14,6 +15,7 @@ TransactionService transactionService = new TransactionService();
 DashboardReportService dashboardReportService = new DashboardReportService();
 DashboardMetricService dashboardMetricService = new DashboardMetricService();
 RiskDistributionService riskDistributionService = new RiskDistributionService();
+AccountLookupService accountLookupService = new AccountLookupService();
 
 List<Account> accounts = seedDataService.GetAccounts();
 List<Transaction> transactions = seedDataService.GetTransactions();
@@ -32,9 +34,31 @@ foreach (Account account in accounts)
 
 DashboardReport report = dashboardReportService.BuildReport(summaries);
 List<DashboardMetric> metrics = dashboardMetricService.BuildMetrics(report);
-Dictionary<CSharpMoneyLab.Enums.RiskLevel, int> riskDistribution =
+Dictionary<RiskLevel, int> riskDistribution =
     riskDistributionService.BuildRiskDistribution(summaries);
 
+Console.WriteLine("Account lookup demo:");
+Console.WriteLine("--------------------------------------");
+
+Account? existingAccount = accountLookupService.FindByAccountNumber(
+    accounts,
+    "ACC-1001"
+);
+
+Account? missingAccount = accountLookupService.FindByAccountNumber(
+    accounts,
+    "ACC-9999"
+);
+
+Console.WriteLine($"Existing account customer: {accountLookupService.GetCustomerNameOrDefault(existingAccount)}");
+Console.WriteLine($"Existing account active: {accountLookupService.IsAccountActive(existingAccount)}");
+
+Console.WriteLine();
+
+Console.WriteLine($"Missing account customer: {accountLookupService.GetCustomerNameOrDefault(missingAccount)}");
+Console.WriteLine($"Missing account active: {accountLookupService.IsAccountActive(missingAccount)}");
+
+Console.WriteLine();
 Console.WriteLine("Dashboard metric cards:");
 
 foreach (DashboardMetric metric in metrics)
@@ -48,7 +72,7 @@ foreach (DashboardMetric metric in metrics)
 Console.WriteLine();
 Console.WriteLine("Risk distribution:");
 
-foreach (KeyValuePair<CSharpMoneyLab.Enums.RiskLevel, int> item in riskDistribution)
+foreach (KeyValuePair<RiskLevel, int> item in riskDistribution)
 {
     Console.WriteLine("--------------------------------------");
     Console.WriteLine($"Risk: {FormatHelper.FormatRiskLevel(item.Key)}");
@@ -56,23 +80,11 @@ foreach (KeyValuePair<CSharpMoneyLab.Enums.RiskLevel, int> item in riskDistribut
 }
 
 Console.WriteLine();
-Console.WriteLine("Account summary cards:");
-
-foreach (AccountSummary summary in report.AccountSummaries)
-{
-    Console.WriteLine("--------------------------------------");
-    Console.WriteLine($"Customer: {summary.CustomerName}");
-    Console.WriteLine($"Account: {summary.AccountNumber}");
-    Console.WriteLine($"Risk: {FormatHelper.FormatRiskLevel(summary.RiskLevel)}");
-    Console.WriteLine($"Balance: {FormatHelper.FormatMoney(summary.Balance, summary.Currency)}");
-}
-
-Console.WriteLine();
 Console.WriteLine("JS/TS mental model:");
-Console.WriteLine("const riskDistribution = { Low: 1, Medium: 1, High: 1 };");
-Console.WriteLine("Object.entries(riskDistribution).forEach(([risk, count]) => console.log(risk, count));");
+Console.WriteLine("const account = accounts.find(account => account.accountNumber === 'ACC-9999');");
+Console.WriteLine("const customerName = account?.customerName ?? 'Unknown customer';");
 
 Console.WriteLine();
 Console.WriteLine("C# equivalent:");
-Console.WriteLine("Dictionary<RiskLevel, int> riskDistribution = new();");
-Console.WriteLine("foreach (KeyValuePair<RiskLevel, int> item in riskDistribution) { ... }");
+Console.WriteLine("Account? account = accounts.FirstOrDefault(account => account.AccountNumber == \"ACC-9999\");");
+Console.WriteLine("string customerName = account?.CustomerName ?? \"Unknown customer\";");
